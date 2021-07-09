@@ -1,7 +1,7 @@
 ---
 title: "ST 558 Project 2"
 author: "Yu Bai & Lee Pixton"
-date: "7/5/2021"
+date: "7/11/2021"
 output: github_document
 ---
 
@@ -34,30 +34,39 @@ library(randomForest)
 ```
 
 # Introduction  
+People are constantly finding new and innovative ways to help people get around town, especially in large cities. One of these more recent methods is through bike sharing. Through technology and smart phones, the whole process of renting a bike, from membership, rental and return has become automatic. These systems allow users to easily rent a bike from a location nearby and return it back to another location, without having to return to the pick up spot.   
+The data we will be exploring contains the hourly and daily counts of bike rentals between 2011 and 2012 in the Capital bikeshare system in Washington, DC. We will be focused on predicting the number of casual users, and be exploring the following variables:
 
+* `casual` - count of casual users
+* `season` - winter, spring, summer or fall
+* `workingday` - whether the day is a work day (not a holiday or weekend)
+* `weathersit` - weather situation (clear, misty, light precipitation, heavy precipitation)
+* `atemp` - Temperature feel in degrees Celsius
+* `hum` - humidity level
 
+We will use both linear regression and ensemble learning methods to predict the casual user count with the above variables.
 
 # Data  
 
 ## Read csv data   
-
+First we read in the data from a csv file.
 ```{r, echo=TRUE}
 getwd()
 
-data<-read_csv(file="./Bike-Sharing-Dataset/day.csv",col_names = TRUE)
+data <- read_csv(file="./Bike-Sharing-Dataset/day.csv",col_names = TRUE)
 
 #Select Monday
-p2<- data %>% filter(weekday == 1)
+p2 <- data %>% filter(weekday == 1)
 
 ```
 
 ## Split data into train data (70%) and test data (30%)  
-
+Next, we set the categorical variables to factors and create a test and train set.
 ```{r}
 p2$season <- factor(p2$season,levels = c(1,2,3,4),labels = c("Spring", "Summer", "Fall","Winter"))
 p2$yr <- factor(p2$yr,levels = c(0,1),labels = c("2011", "2012"))
 p2$holiday <- factor(p2$holiday,levels = c(0,1),labels = c("Not holiday", "Holiday"))
-p2$weekday <- factor(p2$weekday,levels = c(0,1,2,3,4,5,6),labels = c("Sunday", "Monday", "Tuesday","Wendesday","Thursday","Friday","Satursday"))
+p2$weekday <- factor(p2$weekday,levels = c(0,1,2,3,4,5,6),labels = c("Sunday", "Monday", "Tuesday","Wednesday","Thursday","Friday","Saturday"))
 p2$workingday <- factor(p2$workingday,levels = c(0,1),labels = c("Not workingday", "Workingday"))
 p2$weathersit <- factor(p2$weathersit,levels = c(1,2,3,4),labels = c("Clear", "Mist cloudy", "Light snow/rain","Heavy rain/snow"))
 p2$mnth <- factor(p2$mnth)
@@ -136,12 +145,12 @@ g + geom_boxplot()+
 
 
 ```{r}
-#Graph: temperature and count of casual users
+#Graph: temperature feel and count of casual users
 
-g<-ggplot(data=p2Train,aes(x=temp,y=casual))
+g<-ggplot(data=p2Train,aes(x=atemp,y=casual))
 g + geom_point(aes(x=temp,y=casual),size=3)+
     geom_smooth(data=p2Train,formula= y~x,method=lm,col="Green")+
-    labs(subtitle="Temperature and count of casual users",x="Temperature",y="Count of casual users")+
+    labs(subtitle="Temperature Feel and count of casual users",x="Temperature Feel",y="Count of casual users")+
     guides(fill=guide_legend(title=NULL))
 
 ```
@@ -156,6 +165,68 @@ g + geom_point(aes(x=hum,y=casual),size=3)+
     guides(fill=guide_legend(title=NULL))
 
 ```
+
+```{r}
+### count of casual users by working day and season
+s5 <- p2Train %>% 
+        group_by(workingday) %>%
+        summarize(avg = mean(casual,na.rm =TRUE),
+                  sd = sd(casual,na.rm =TRUE),
+                  min = min(casual,na.rm =TRUE),
+                  max = max(casual,na.rm =TRUE)
+                  )
+
+kable(s5, caption = "Casual Users by Working Day")
+```
+
+```{r}
+# Scatterplot for casual by workingday and season
+g1 <- ggplot(data=p2Train,aes(x=casual,y=workingday,group=season))
+g1 + geom_point(aes(color=season))+
+    labs(title="Count of Casual Users by Working Day and Season",x="Count of casual users",y="Working Day")
+
+
+```
+
+```{r}
+### count of casual users by year
+s6 <- p2Train %>% 
+        group_by(weathersit) %>%
+        summarize(avg = mean(casual,na.rm =TRUE),
+                  sd = sd(casual,na.rm =TRUE),
+                  min = min(casual,na.rm =TRUE),
+                  max = max(casual,na.rm =TRUE)
+                  )
+kable(s6, caption = "Casual Users by Weather Situation")
+```
+
+```{r}
+### count of casual users by year
+s7 <- p2Train %>% 
+        group_by(season) %>%
+        summarize(count = sum(casual,na.rm =TRUE))
+kable(s7, caption = "Count of Casual Users by Season")
+```
+
+```{r}
+# Count of casual users by weather and season
+g2 <- ggplot(p2Train, aes(x=season))
+g2 + geom_bar(aes(fill=casual,position = 'dodge',color=season),fill = "white") +
+     labs(title="Count of Casual Users by Season and Weather",y="Count of Casual Users",x="Season") + theme(legend.title = element_blank(),axis.text.x = element_blank()) + facet_wrap(p2Train$weathersit)
+```
+
+
+```{r}
+#Graph: humidity and count of casual users
+
+g3 <- ggplot(p2Train, aes(x=atemp,y=hum))
+g3 + geom_point(aes(size = casual,color=season))+
+     labs(title="Casual Users by Temperature Feel and Humidty",x="Temperature Feel",y="Humidty")+
+     guides(fill=guide_legend(title=NULL))
+
+```
+
+
 
 ## Modeling 
 
