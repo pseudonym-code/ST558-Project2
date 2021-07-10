@@ -229,13 +229,11 @@ g3 + geom_point(aes(size = casual,color=season))+
 
 
 ## Modeling 
-
+Linear regression is to estimate the association between a response variable and one or more predictors by using a linear approach. Four models are built for the analysis. The first one is a linear model, which includes 5 predictors (season, workingday, weathersit, atemp, and hum).  The second one is a random forest model. The third one is still a linear model, which including 4 predictors (season, workingday, weathersit, and atemp). The fourth one is a boosted tree model. 
 
 ```{r}
-# Linear model
-
-#Model 1: all variables
-f_m1<-as.formula("casual~season+yr+holiday+temp+atemp+hum+windspeed")
+# Model 1: Linear model with all 5 predictor variables
+f_m1<-as.formula("casual~season+workingday+weathersit+atemp+hum")
 
 fit_m1 <- train(f_m1, data = p2Train,
   method = "lm",
@@ -245,22 +243,88 @@ fit_m1 <- train(f_m1, data = p2Train,
 
 ```
 
+Random forests are a learning approach for classification and regression problems to build a predictive model. This model is made of many decision trees.
 
 ```{r}
-# Ensemble tree model (Random forest)
-fit_m2<-randomForest(f_m1, data=p2Train, mtry = ncol(p2Train)/3, ntree = 200, importance = TRUE)
+#Define trainControl
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+# Model 2: Ensemble tree model (Random forest)
+fit_m2 <- train(f_m1, 
+                data = p2Train, 
+                method = "rf",
+                trControl=trctrl,
+                preProcess = c("center", "scale"),
+                tuneGrid = data.frame(mtry = 1))
+
+```
+
+```{r}
+# Model 3: Linear model with 4 predictor variables because we drop hum from Model 1
+f_m2<-as.formula("casual~season+workingday+weathersit+atemp")
+
+fit_m3 <- train(f_m2, data = p2Train,
+  method = "lm",
+  preProcess = c("center","scale"),
+  trControl = trainControl(method = "cv" , number = 10))
+
+```
+
+XXX
+```{r}
+# Model 4: Ensemble tree model (boosted tree)
+gbmGrid <-  expand.grid(interaction.depth = 4,
+                    n.trees = 1000, 
+                    shrinkage = 0.1,
+                    n.minobsinnode = 2)
+
+fit_m4 <- train(f_m1, 
+                data = p2Train, 
+                method = "gbm",
+                trControl=trctrl,
+                preProcess = c("center", "scale"),
+                verbose = FALSE,
+                tuneGrid = gbmGrid
+                )
 
 ```
 
 ## Model comparison
 ```{r}
-result<-data.frame(t(fit_m1$results), t(fit_m2$results))  #, t(fit_m3$results), t(fit_m4$results), t(fit_m5$results))
+result<-as.matrix(t(data.frame(RMSE=c(fit_m1$results[[2]], fit_m2$results[[2]], fit_m3$results[[2]], fit_m4$results[[5]]),
+                   Rsquared=c(fit_m1$results[[3]], fit_m2$results[[3]], fit_m3$results[[3]], fit_m4$results[[6]]),
+                   MAE=c(fit_m1$results[[4]], fit_m2$results[[4]], fit_m3$results[[4]], fit_m4$results[[7]])
+                   )))
 
-result %>% rename (Model1=X1,Model2=X1.1)  #,Model3=X1.2,Model4=X1.3,Model5=X1.4)
+colnames(result)<-c("Model1","Model2","Model3","Model4")
+
+kable(result)
 
 ```
 
+## Model selection  
+
+```{r}
+
+RMSE_min<-min(fit_m1$results[[2]], fit_m2$results[[2]], fit_m3$results[[2]], fit_m4$results[[5]])
+
+if(fit_m1$results[[2]]==RMSE_min){
+  model<-1 
+} 
+if(fit_m2$results[[2]]==RMSE_min){
+  model<-2 
+  }
+if(fit_m3$results[[2]]==RMSE_min){
+  model<-3 
+  }
+if(fit_m4$results[[5]]==RMSE_min){
+  model<-4 
+} 
+
 ```
+
+The best model is the one with smallest RMSE. Based on the table above, the best model is Model `r model` 
+
 
 ```{r}
 
