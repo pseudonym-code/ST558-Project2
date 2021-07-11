@@ -21,7 +21,6 @@ set.seed(123)
 knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 50), tidy = TRUE)
 library(dplyr)
 library(tidyverse)
-library(Lahman)
 library(knitr)
 library(readr)
 library(parallel)
@@ -260,25 +259,24 @@ fit_m2 <- train(f_m1,
 ```
 
 ```{r}
-# Model 3: Linear model with 4 predictor variables because we drop hum from Model 1
-f_m2<-as.formula("casual~season+workingday+weathersit+atemp")
-
-fit_m3 <- train(f_m2, data = p2Train,
-  method = "lm",
-  preProcess = c("center","scale"),
-  trControl = trainControl(method = "cv" , number = 10))
+# Model 3: Linear model after dropping humidity from the first model
+fit_m3 <- train(casual ~ season + workingday + weathersit + atemp, 
+                    data = p2Train,
+                    method = "lm",
+                    preProcess = c("center","scale"),
+                    trControl = trainControl(method = "cv" , number = 10))
 
 ```
 
-XXX
+Boosting tree models is a general approach that consists of growing the trees sequentially. This means that each tree is based off of the previous one, and predictions are updated along the way. In essence, we are using several weaker tree models sequentially in order to create a strong tree model. The errors of previous models are minimized and the next model is then "boosted" to ideally improve the accuracy of predictions and reduce error.
 ```{r}
 # Model 4: Ensemble tree model (boosted tree)
 gbmGrid <-  expand.grid(interaction.depth = 4,
-                    n.trees = 1000, 
-                    shrinkage = 0.1,
-                    n.minobsinnode = 2)
+                        n.trees = 1000, 
+                        shrinkage = 0.1,
+                        n.minobsinnode = 2)
 
-fit_m4 <- train(f_m1, 
+fit_m4 <- train(casual ~ season + workingday + weathersit + atemp + hum, 
                 data = p2Train, 
                 method = "gbm",
                 trControl=trctrl,
