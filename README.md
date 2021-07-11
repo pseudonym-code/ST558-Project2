@@ -1,4 +1,4 @@
-"# ST558_Project-2" 
+## ST558_Project-2
 
 This repository is used to create bike sharing summary reports for bike rentals between 2011 and 2012 in the Capital bikeshare system in Washington, DC. There is a separate report for each day.
    
