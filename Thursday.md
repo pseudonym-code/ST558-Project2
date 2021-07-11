@@ -33,17 +33,25 @@ predict the casual user count with the above variables.
 
 The packages that will be used in this analysis are below.
 
+``` r
+library(rmarkdown)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+library(readr)
+library(parallel)
+library(MuMIn)
+library(modelr)
+library(caret)
+library(formatR)
+library(randomForest)
+```
+
 # Data
 
 ## Read csv data
 
 First we read in the data from a csv file.
-
-``` r
-getwd()
-```
-
-    ## [1] "D:/Documents/NCSU/ST558/ST558_Project-2"
 
 ``` r
 data <- read_csv(file = "./Bike-Sharing-Dataset/day.csv",
@@ -92,6 +100,9 @@ bike sharing in this analysis.
 
 ### Casual Users by Season
 
+The table below shows the distribution of casual users across four
+seasons. It helps us see a season effect.
+
 ``` r
 ### count of casual users by season
 s1 <- p2Train %>%
@@ -101,7 +112,7 @@ s1 <- p2Train %>%
             na.rm = TRUE), max_casual = max(casual,
             na.rm = TRUE))
 
-kable(s1, caption = "Count of casual users by season")
+kable(s1)
 ```
 
 | season | avg\_casual | sd\_casual | min\_casual | max\_casual |
@@ -111,11 +122,12 @@ kable(s1, caption = "Count of casual users by season")
 | Fall   |    856.8182 |   297.6266 |         153 |        1405 |
 | Winter |    538.3333 |   283.0479 |         139 |        1008 |
 
-Count of casual users by season
+The box-plot displays the minimum, maximum, first quartile, third
+quartile, median and outliers for casual users across seasons. It helps
+us see difference in casual users over seasons.
 
 ``` r
-## Graph Boxplot for count of casual users by
-## season
+# Boxplot for count of casual users by season
 g1 <- ggplot(data = p2Train, aes(x = casual, y = season))
 g1 + geom_boxplot() + labs(subtitle = "Boxplot for count of casual users by season",
     x = "Count of casual users", y = "Season") + guides(fill = guide_legend(title = NULL))
@@ -123,74 +135,64 @@ g1 + geom_boxplot() + labs(subtitle = "Boxplot for count of casual users by seas
 
 ![](Thursday_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
-### Casual Users by Year
+The table below shows the distribution of casual users in workingday and
+non-workingday across four seasons. It helps us see an interaction of
+season and workingday effect.
 
 ``` r
-### count of casual users by year
-s2 <- p2Train %>%
-    group_by(yr) %>%
+### count of casual users by workingday and
+### season
+s4 <- p2Train %>%
+    group_by(season, workingday) %>%
     summarize(avg_casual = mean(casual, na.rm = TRUE),
         sd_casual = sd(casual, na.rm = TRUE), min_casual = min(casual,
             na.rm = TRUE), max_casual = max(casual,
             na.rm = TRUE))
-kable(s2, caption = "Count of casual users by year")
+kable(s4)
 ```
 
-| yr   | avg\_casual | sd\_casual | min\_casual | max\_casual |
-|:-----|------------:|-----------:|------------:|------------:|
-| 2011 |    475.7419 |   277.2273 |          15 |        1027 |
-| 2012 |    760.0976 |   368.2663 |          74 |        1405 |
+| season | workingday     | avg\_casual | sd\_casual | min\_casual | max\_casual |
+|:-------|:---------------|------------:|-----------:|------------:|------------:|
+| Spring | Workingday     |    223.6154 |   268.2786 |          15 |        1005 |
+| Summer | Workingday     |    761.3158 |   270.6527 |         179 |        1242 |
+| Fall   | Workingday     |    856.8182 |   297.6266 |         153 |        1405 |
+| Winter | Not workingday |    757.5000 |   279.3072 |         560 |         955 |
+| Winter | Workingday     |    510.9375 |   279.9863 |         139 |        1008 |
 
-Count of casual users by year
+The graph below shows the distribution of casual users in workingday and
+non-workingday across four seasons. It helps us compare the casual users
+by workingday over four seasons.
 
 ``` r
-## Graph Boxplot for count of casual users by
-## year
-g2 <- ggplot(data = p2Train, aes(x = casual, y = yr))
-g2 + geom_boxplot() + labs(subtitle = "Boxplot for count of casual users by year",
-    x = "Count of casual users", y = "Year") + guides(fill = guide_legend(title = NULL))
+# Barplot for count of casual users by workingday
+# and season
+g <- ggplot(data = p2Train, aes(x = casual, y = season))
+g + geom_boxplot() + labs(subtitle = "Boxplot for count of casual users by workingday and season",
+    x = "Count of casual users", y = "Season") + guides(fill = guide_legend(title = NULL)) +
+    facet_wrap(~workingday)
 ```
 
 ![](Thursday_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
-### Casual Users by Both Year and Season
+Here is another way to compare the count of casual users in workingday
+and non-workingday across four seasons. It helps us understand the
+difference in the casual users by workingday over four seasons.
 
 ``` r
-### count of casual users by year and season
-s3 <- p2Train %>%
-    group_by(yr, season) %>%
-    summarize(avg_casual = mean(casual, na.rm = TRUE),
-        sd_casual = sd(casual, na.rm = TRUE), min_casual = min(casual,
-            na.rm = TRUE), max_casual = max(casual,
-            na.rm = TRUE))
-kable(s3, caption = "Count of casual users by year and season")
+# Scatterplot for casual by workingday and season
+g1 <- ggplot(data = p2Train, aes(x = casual, y = workingday,
+    group = season))
+g1 + geom_point(aes(color = season)) + labs(title = "Count of Casual Users by Working Day and Season",
+    x = "Count of casual users", y = "Working Day")
 ```
 
-| yr   | season | avg\_casual | sd\_casual | min\_casual | max\_casual |
-|:-----|:-------|------------:|-----------:|------------:|------------:|
-| 2011 | Spring |    100.8333 |    86.4417 |          15 |         259 |
-| 2011 | Summer |    584.8889 |   176.0962 |         179 |         758 |
-| 2011 | Fall   |    652.6000 |   239.1779 |         153 |        1027 |
-| 2011 | Winter |    392.1667 |   200.0514 |         139 |         653 |
-| 2012 | Spring |    328.8571 |   331.2443 |          74 |        1005 |
-| 2012 | Summer |    920.1000 |   244.5429 |         475 |        1242 |
-| 2012 | Fall   |   1027.0000 |   229.7758 |         611 |        1405 |
-| 2012 | Winter |    611.4167 |   296.8913 |         243 |        1008 |
+![](Thursday_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-Count of casual users by year and season
+### Casual Users by Temperature
 
-``` r
-# Barplot for count of casual users by year and
-# season
-g3 <- ggplot(data = p2Train, aes(x = casual, y = season))
-g3 + geom_boxplot() + labs(subtitle = "Boxplot for count of casual users by year and year",
-    x = "Count of casual users", y = "Season") + guides(fill = guide_legend(title = NULL)) +
-    facet_wrap(~yr)
-```
-
-![](Thursday_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
-
-### Casual Users by Temperature Feel
+The graph below shows the relationship between the count of casual users
+and temperature. It helps us understand whether there is a linear
+association between the two variables.
 
 ``` r
 # Graph: temperature feel and count of casual
@@ -204,9 +206,13 @@ g4 + geom_point(aes(x = temp, y = casual), size = 3) +
     guides(fill = guide_legend(title = NULL))
 ```
 
-![](Thursday_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](Thursday_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ### Casual Users by Humidity
+
+The graph below shows the relationship between the count of casual users
+and humidity. It helps us understand whether there is a linear
+association between the two variables.
 
 ``` r
 # Graph: humidity and count of casual users
@@ -219,49 +225,37 @@ g5 + geom_point(aes(x = hum, y = casual), size = 3) +
     guides(fill = guide_legend(title = NULL))
 ```
 
-![](Thursday_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](Thursday_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-### Casual Users by Working Day and Season
+### Weather Situations by Season
+
+The table below shows the weather status over seasons.
 
 ``` r
-### count of casual users by working day and
-### season
-s4 <- p2Train %>%
-    group_by(workingday) %>%
-    summarize(avg = mean(casual, na.rm = TRUE), sd = sd(casual,
-        na.rm = TRUE), min = min(casual, na.rm = TRUE),
-        max = max(casual, na.rm = TRUE))
-
-kable(s4, caption = "Casual Users by Working Day")
+### contingency table
+table(p2Train$season, p2Train$weathersit)
 ```
 
-| workingday     |      avg |       sd | min |  max |
-|:---------------|---------:|---------:|----:|-----:|
-| Not workingday | 757.5000 | 279.3072 | 560 |  955 |
-| Workingday     | 634.2429 | 362.1648 |  15 | 1405 |
+    ##         
+    ##          Clear Mist cloudy Light snow/rain Heavy rain/snow
+    ##   Spring     9           4               0               0
+    ##   Summer    14           4               1               0
+    ##   Fall      16           5               1               0
+    ##   Winter     8          10               0               0
 
-Casual Users by Working Day
+### Casual Users by Weather Situation
 
-``` r
-# Scatterplot for casual by workingday and season
-g6 <- ggplot(data = p2Train, aes(x = casual, y = workingday,
-    group = season))
-g6 + geom_point(aes(color = season)) + labs(title = "Count of Casual Users by Working Day and Season",
-    x = "Count of casual users", y = "Working Day")
-```
-
-![](Thursday_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
-
-### Casual Users by Weather
+The table below shows the distribution of the count of casual users over
+three weather situations. It helps us understand the weather effect.
 
 ``` r
-### count of casual users by weather situation
-s5 <- p2Train %>%
+### count of casual users by Weather Situation
+s6 <- p2Train %>%
     group_by(weathersit) %>%
     summarize(avg = mean(casual, na.rm = TRUE), sd = sd(casual,
         na.rm = TRUE), min = min(casual, na.rm = TRUE),
         max = max(casual, na.rm = TRUE))
-kable(s5, caption = "Casual Users by Weather Situation")
+kable(s6)
 ```
 
 | weathersit      |      avg |        sd | min |  max |
@@ -270,52 +264,39 @@ kable(s5, caption = "Casual Users by Weather Situation")
 | Mist cloudy     | 496.6087 | 275.89552 |  74 | 1008 |
 | Light snow/rain | 166.0000 |  18.38478 | 153 |  179 |
 
-Casual Users by Weather Situation
+### Casual Users by Weather Situations and Seasons
 
-### Full Count by Season
-
-``` r
-### Complete count of casual users by season
-s6 <- p2Train %>%
-    group_by(season) %>%
-    summarize(count = sum(casual, na.rm = TRUE))
-kable(s6, caption = "Count of Casual Users by Season")
-```
-
-| season | count |
-|:-------|------:|
-| Spring |  2907 |
-| Summer | 14465 |
-| Fall   | 18850 |
-| Winter |  9690 |
-
-Count of Casual Users by Season
-
-### Casual Users by Weather and Season
+The graph below shows the count of casual users over seasons by three
+weather situations. It helps us understand whether there is an
+interaction between weather and season.
 
 ``` r
 # Count of casual users by weather and season
-g7 <- ggplot(p2Train, aes(x = season))
-g7 + geom_bar(aes(fill = casual, position = "dodge",
+g2 <- ggplot(p2Train, aes(x = season))
+g2 + geom_bar(aes(fill = casual, position = "dodge",
     color = season), fill = "white") + labs(title = "Count of Casual Users by Season and Weather",
     y = "Count of Casual Users", x = "Season") + theme(legend.title = element_blank(),
     axis.text.x = element_blank()) + facet_wrap(p2Train$weathersit)
 ```
 
-![](Thursday_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](Thursday_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
-### Casual Users by Humidity, Temperature, and Season
+### Casual Users by Humidity, Temperature, Weather Situations and Seasons
+
+The graph below shows the effects of humidity and temperature on the
+count of casual users over seasons. It helps us understand how multiple
+variables affect casual users.
 
 ``` r
 # Graph: humidity and count of casual users
 
-g8 <- ggplot(p2Train, aes(x = atemp, y = hum))
-g8 + geom_point(aes(size = casual, color = season)) +
+g3 <- ggplot(p2Train, aes(x = atemp, y = hum))
+g3 + geom_point(aes(size = casual, color = season)) +
     labs(title = "Casual Users by Temperature Feel and Humidty",
         x = "Temperature Feel", y = "Humidty") + guides(fill = guide_legend(title = NULL))
 ```
 
-![](Thursday_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](Thursday_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ## Modeling
 
@@ -475,10 +456,10 @@ fit_m4
     ##   247.82  0.6233578  200.8812
     ## 
     ## Tuning parameter 'n.trees' was held constant at a value of 1000
-    ## Tuning parameter 'interaction.depth' was held constant at a value of 4
-    ## Tuning parameter 'shrinkage' was held constant at a
-    ##  value of 0.1
-    ## Tuning parameter 'n.minobsinnode' was held constant at a value of 2
+    ## Tuning
+    ##  parameter 'shrinkage' was held constant at a value of 0.1
+    ## Tuning
+    ##  parameter 'n.minobsinnode' was held constant at a value of 2
 
 ## Model Comparison
 

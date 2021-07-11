@@ -36,7 +36,7 @@ We will use both linear regression and ensemble learning methods to predict the 
 
 ## Packages
 The packages that will be used in this analysis are below.
-```{r, echo= F}
+```{r, echo = T}
 
 library(rmarkdown)
 library(dplyr)
@@ -57,8 +57,6 @@ library(randomForest)
 ## Read csv data   
 First we read in the data from a csv file.
 ```{r, echo=TRUE}
-getwd()
-
 data <- read_csv(file="./Bike-Sharing-Dataset/day.csv",col_names = TRUE)
 
 #Select Monday
@@ -66,8 +64,9 @@ p2 <- data %>% filter(weekday == params$day)
 
 ```
 
-## Split data into train data (70%) and test data (30%)  
+## Split data into train data (70%) and test data (30%)   
 Next, we set the categorical variables to factors and create a test and train set.
+
 ```{r}
 # Set categorical variables to factors
 p2$season <- factor(p2$season,levels = c(1,2,3,4),labels = c("Spring", "Summer", "Fall","Winter"))
@@ -89,7 +88,10 @@ p2Test <- p2[test, ]
 ## Summarizations  
 After reading in the data, we can now examine our training dataset. As mentioned above, we will be specifically looking at the casual users of bike sharing in this analysis. 
 
-### Casual Users by Season
+### Casual Users by Season  
+
+The table below shows the distribution of casual users across four seasons. It helps us see a season effect.  
+
 ```{r}
 ### count of casual users by season
 s1 <- p2Train %>% 
@@ -100,11 +102,12 @@ s1 <- p2Train %>%
                   max_casual=max(casual,na.rm =TRUE)
                   )
 
-kable(s1, caption = "Count of casual users by season")
+kable(s1)
 ```
 
+The box-plot displays the minimum, maximum, first quartile, third quartile, median and outliers for casual users across seasons. It helps us see difference in casual users over seasons.  
+
 ```{r}
-## Graph
 #Boxplot for count of casual users by season
 g1 <- ggplot(data=p2Train,aes(x=casual,y=season))
 g1 + geom_boxplot()+
@@ -114,55 +117,48 @@ g1 + geom_boxplot()+
 
 ```
 
-### Casual Users by Year
+The table below shows the distribution of casual users in workingday and non-workingday across four seasons. It helps us see an interaction of season and workingday effect.   
+
 ```{r}
-### count of casual users by year
-s2 <- p2Train %>% 
-        group_by(yr) %>%
+### count of casual users by workingday and season
+s4 <- p2Train %>% 
+        group_by(season,workingday) %>%
         summarize(avg_casual=mean(casual,na.rm =TRUE),
                   sd_casual=sd(casual,na.rm =TRUE),
                   min_casual=min(casual,na.rm =TRUE),
                   max_casual=max(casual,na.rm =TRUE)
                   )
-kable(s2, caption = "Count of casual users by year")
+kable(s4)
 ```
+
+The graph below shows the distribution of casual users in workingday and non-workingday across four seasons. It helps us compare the casual users by workingday over four seasons.    
 
 
 ```{r}
-## Graph
-#Boxplot for count of casual users by year
-g2 <- ggplot(data=p2Train,aes(x=casual,y=yr))
-g2 + geom_boxplot()+
-        labs(subtitle="Boxplot for count of casual users by year",x="Count of casual users",y="Year")+
-        guides(fill=guide_legend(title=NULL))
+#Barplot for count of casual users by workingday and season
+g<-ggplot(data=p2Train,aes(x=casual,y=season))
+g + geom_boxplot()+
+    labs(subtitle="Boxplot for count of casual users by workingday and season",x="Count of casual users",y="Season")+
+    guides(fill=guide_legend(title=NULL))+
+    facet_wrap(~workingday)
 
 ```
 
-### Casual Users by Both Year and Season
-```{r}
-### count of casual users by year and season
-s3 <- p2Train %>% 
-        group_by(yr, season) %>%
-        summarize(avg_casual=mean(casual,na.rm =TRUE),
-                  sd_casual=sd(casual,na.rm =TRUE),
-                  min_casual=min(casual,na.rm =TRUE),
-                  max_casual=max(casual,na.rm =TRUE)
-                  )
-kable(s3, caption = "Count of casual users by year and season")
-```
-
+Here is another way to compare the count of casual users in workingday and non-workingday across four seasons. It helps us understand the difference in the casual users by workingday over four seasons.      
 
 ```{r}
-#Barplot for count of casual users by year and season
-g3 <- ggplot(data=p2Train,aes(x=casual,y=season))
-g3 + geom_boxplot()+
-        labs(subtitle="Boxplot for count of casual users by year and year",x="Count of casual users",y="Season")+
-        guides(fill=guide_legend(title=NULL))+
-        facet_wrap(~yr)
+# Scatterplot for casual by workingday and season
+g1 <- ggplot(data=p2Train,aes(x=casual,y=workingday,group=season))
+g1 + geom_point(aes(color=season))+
+    labs(title="Count of Casual Users by Working Day and Season",x="Count of casual users",y="Working Day")
+
 
 ```
 
-### Casual Users by Temperature Feel
+### Casual Users by Temperature  
+
+The graph below shows the relationship between the count of casual users and temperature. It helps us understand whether there is a linear association between the two variables.      
+
 ```{r}
 #Graph: temperature feel and count of casual users
 
@@ -175,7 +171,10 @@ g4 + geom_point(aes(x=temp,y=casual),size=3)+
 ```
 
 
-### Casual Users by Humidity
+### Casual Users by Humidity  
+
+The graph below shows the relationship between the count of casual users and humidity. It helps us understand whether there is a linear association between the two variables.  
+
 ```{r}
 #Graph: humidity and count of casual users
 
@@ -187,73 +186,56 @@ g5 + geom_point(aes(x=hum,y=casual),size=3)+
 
 ```
 
-### Casual Users by Working Day and Season
-```{r}
-### count of casual users by working day and season
-s4 <- p2Train %>% 
-        group_by(workingday) %>%
-        summarize(avg = mean(casual,na.rm =TRUE),
-                  sd = sd(casual,na.rm =TRUE),
-                  min = min(casual,na.rm =TRUE),
-                  max = max(casual,na.rm =TRUE)
-                  )
+### Weather Situations by Season  
 
-kable(s4, caption = "Casual Users by Working Day")
-```
+The table below shows the weather status over seasons.     
 
 ```{r}
-# Scatterplot for casual by workingday and season
-g6 <- ggplot(data=p2Train,aes(x=casual,y=workingday,group=season))
-g6 + geom_point(aes(color=season))+
-    labs(title="Count of Casual Users by Working Day and Season",x="Count of casual users",y="Working Day")
-
+### contingency table
+table(p2Train$season,p2Train$weathersit)
 
 ```
 
-### Casual Users by Weather
+### Casual Users by Weather Situation 
+
+The table below shows the distribution of the count of casual users over three weather situations. It helps us understand the weather effect.  
+
 ```{r}
-### count of casual users by weather situation
-s5 <- p2Train %>% 
+### count of casual users by Weather Situation
+s6 <- p2Train %>% 
         group_by(weathersit) %>%
         summarize(avg = mean(casual,na.rm =TRUE),
                   sd = sd(casual,na.rm =TRUE),
                   min = min(casual,na.rm =TRUE),
                   max = max(casual,na.rm =TRUE)
                   )
-kable(s5, caption = "Casual Users by Weather Situation")
+kable(s6)
 ```
 
+### Casual Users by Weather Situations and Seasons  
 
-### Full Count by Season
-```{r}
-### Complete count of casual users by season
-s6 <- p2Train %>% 
-        group_by(season) %>%
-        summarize(count = sum(casual,na.rm =TRUE))
-kable(s6, caption = "Count of Casual Users by Season")
-```
+The graph below shows the count of casual users over seasons by three weather situations. It helps us understand whether there is an interaction between weather and season.     
 
-### Casual Users by Weather and Season
 ```{r}
 # Count of casual users by weather and season
-g7 <- ggplot(p2Train, aes(x=season))
-g7 + geom_bar(aes(fill=casual,position = 'dodge',color=season),fill = "white") +
-        labs(title="Count of Casual Users by Season and Weather",y="Count of Casual Users",x="Season") + 
-        theme(legend.title = element_blank(),axis.text.x = element_blank()) + 
-        facet_wrap(p2Train$weathersit)
+g2 <- ggplot(p2Train, aes(x=season))
+g2 + geom_bar(aes(fill=casual,position = 'dodge',color=season),fill = "white") +
+     labs(title="Count of Casual Users by Season and Weather",y="Count of Casual Users",x="Season") + theme(legend.title = element_blank(),axis.text.x = element_blank()) + facet_wrap(p2Train$weathersit)
 ```
 
-### Casual Users by Humidity, Temperature, and Season
+### Casual Users by Humidity, Temperature, Weather Situations and Seasons 
+
+The graph below shows the effects of humidity and temperature on the count of casual users over seasons. It helps us understand how multiple variables affect casual users.   
+
 ```{r}
 #Graph: humidity and count of casual users
 
-g8 <- ggplot(p2Train, aes(x=atemp,y=hum))
-g8 + geom_point(aes(size = casual,color=season))+
-        labs(title="Casual Users by Temperature Feel and Humidty",x="Temperature Feel",y="Humidty")+
-        guides(fill=guide_legend(title=NULL))
+g3 <- ggplot(p2Train, aes(x=atemp,y=hum))
+g3 + geom_point(aes(size = casual,color=season))+
+     labs(title="Casual Users by Temperature Feel and Humidty",x="Temperature Feel",y="Humidty")+
+     guides(fill=guide_legend(title=NULL))
 
 ```
-
 
 
 ## Modeling 
@@ -301,7 +283,8 @@ fit_m3 <- train(casual ~ season + workingday + weathersit + atemp,
 summary(fit_m3)
 ```
 
-Boosting tree models is a general approach that consists of growing the trees sequentially. This means that each tree is based off of the previous one, and predictions are updated along the way. In essence, we are using several weaker tree models sequentially in order to create a strong tree model. The errors of previous models are minimized and the next model is then "boosted" to ideally improve the accuracy of predictions and reduce error. Here we will use all five of our variables of interest. 
+Boosting tree models is a general approach that consists of growing the trees sequentially. This means that each tree is based off of the previous one, and predictions are updated along the way. In essence, we are using several weaker tree models sequentially in order to create a strong tree model. The errors of previous models are minimized and the next model is then "boosted" to ideally improve the accuracy of predictions and reduce error. Here we will use all five of our variables of interest.  
+
 ```{r}
 # Model 4: Ensemble tree model (boosted tree)
 gbmGrid <-  expand.grid(interaction.depth = 4,

@@ -3,11 +3,9 @@ title: "ST 558 Project 2 Render File"
 author: "Yu Bai & Lee Pixton"
 date: "7/11/2021"
 output: github_document
-params:
-  day: 1
 ---
 
-```{r}
+```{r, message=F}
 library(knitr)
 library(rmarkdown)
 library(tidyverse)
