@@ -26,18 +26,18 @@ The packages used for this analysis are below:
    
 Finally, the code used to automate the creation of the daily reports is:   
 
-```{r, message=F}
-library(knitr)
-library(rmarkdown)
-library(tidyverse)
-data <- read_csv(file="./Bike-Sharing-Dataset/day.csv",col_names = TRUE)
-daysFile <- paste0(unique(weekdays(data$dteday[2:8])),".md")
-dayNum <- unique(data$weekday[2:8])
-params = lapply(dayNum, FUN = function(x){list(day = x)})
-reports <- tibble(daysFile, params)
-apply(reports, MARGIN = 1,
-        FUN = function(x){
-          render(input = "Project 2.Rmd", output_file = x[[1]], params = x[[2]])
-        })
-render('Project 2.Rmd', output_format = "github_document", output_file = "README.md")
+```
+library(knitr)   
+library(rmarkdown)   
+library(tidyverse)   
+data <- read_csv(file="./Bike-Sharing-Dataset/day.csv",col_names = TRUE)   
+daysFile <- paste0(unique(weekdays(data$dteday[2:8])),".md")   
+dayNum <- unique(data$weekday[2:8])   
+params = lapply(dayNum, FUN = function(x){list(day = x)})   
+reports <- tibble(daysFile, params)   
+apply(reports, MARGIN = 1,   
+        FUN = function(x){   
+          render(input = "Project 2.Rmd", output_file = x[[1]], params = x[[2]])   
+        })   
+render('Project 2.Rmd', output_format = "github_document", output_file = "README.md")   
 ```
