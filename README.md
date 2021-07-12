@@ -24,7 +24,8 @@ The packages used for this analysis are below:
 * formatR  
 * randomForest
    
-Finally, the code used to automate the creation of the daily reports is:
+Finally, the code used to automate the creation of the daily reports is:   
+
 ```{r, message=F}
 library(knitr)
 library(rmarkdown)
